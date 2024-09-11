@@ -8,21 +8,21 @@ public struct AccountMeta: Equatable, Codable, CustomDebugStringConvertible {
     // MARK: - Decodable
 
     enum CodingKeys: String, CodingKey {
-        case pubkey, signer, writable
+        case pubkey, signer, isMut
     }
 
     public init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         publicKey = try PublicKey(string: values.decode(String.self, forKey: .pubkey))
         isSigner = try values.decode(Bool.self, forKey: .signer)
-        isWritable = try values.decode(Bool.self, forKey: .writable)
+        isWritable = try values.decode(Bool.self, forKey: .isMut)
     }
 
     public func encode(to encoder: Encoder) throws {
         var container = encoder.container(keyedBy: CodingKeys.self)
         try container.encode(publicKey.base58EncodedString, forKey: .pubkey)
         try container.encode(isSigner, forKey: .signer)
-        try container.encode(isWritable, forKey: .writable)
+        try container.encode(isWritable, forKey: .isMut)
     }
 
     // Initializers
