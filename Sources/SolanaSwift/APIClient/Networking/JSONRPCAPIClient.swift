@@ -365,7 +365,7 @@ public class JSONRPCAPIClient: SolanaAPIClient {
 
     // MARK: - Private
 
-    private func get<Entity: Decodable>(method: String, params: [Encodable]) async throws -> Entity {
+    public func get<Entity: Decodable>(method: String, params: [Encodable]) async throws -> Entity {
         let request = RequestEncoder.RequestType(method: method, params: params)
         let data = try await makeRequest(request: request)
         let response: AnyResponse<Entity> = try ResponseDecoder<AnyResponse<Entity>>().decode(with: data)
