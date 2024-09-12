@@ -8,7 +8,7 @@ public struct AccountMeta: Equatable, Codable, CustomDebugStringConvertible {
     // MARK: - Decodable
 
     enum CodingKeys: String, CodingKey {
-        case name,  signer, writable
+        case name, signer, writable
     }
 
     public init(from decoder: Decoder) throws {
