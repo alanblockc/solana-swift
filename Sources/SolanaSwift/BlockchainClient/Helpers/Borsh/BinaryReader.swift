@@ -60,7 +60,7 @@ public extension BinaryReader {
         let resultHex = Data(result).toHexString()
         print("\nresultHex:" + resultHex)
         
-        let suffixHex = Data(bytes.suffix(bytes.count - newPosition + 1)).toHexString()
+        let suffixHex = Data(bytes.suffix(bytes.count - newPosition)).toHexString()
         print("\nsuffixHex:" + suffixHex)
         
         cursor = newPosition
