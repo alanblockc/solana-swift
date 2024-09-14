@@ -57,6 +57,8 @@ public extension BinaryReader {
         }
         let result = bytes[cursor ..< newPosition]
 
+        print("\nresultCount:\(count)")
+        
         let resultHex = Data(result).toHexString()
         print("\nresultHex:" + resultHex)
         
