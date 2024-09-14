@@ -56,6 +56,13 @@ public extension BinaryReader {
             throw BinaryReaderError.dataMismatch
         }
         let result = bytes[cursor ..< newPosition]
+
+        let resultHex = Data(result).toHexString()
+        print("\nresultHex:" + resultHex)
+        
+        let suffixHex = Data(bytes.suffix(newPosition)).toHexString()
+        print("\nsuffixHex:" + suffixHex)
+        
         cursor = newPosition
         return Array(result)
     }
