@@ -110,14 +110,14 @@ public class SolanaAPIClient {
         )
     }
 
-    public func getRecentBlockhash(commitment: Commitment? = nil) async throws -> String {
-        let result: Rpc<Fee> = try await get(method: "getRecentBlockhash",
-                                             params: [RequestConfiguration(commitment: commitment)])
-        guard let blockhash = result.value.blockhash else {
-            throw APIClientError.blockhashNotFound
-        }
-        return blockhash
-    }
+//    public func getRecentBlockhash(commitment: Commitment? = nil) async throws -> String {
+//        let result: Rpc<Fee> = try await get(method: "getRecentBlockhash",
+//                                             params: [RequestConfiguration(commitment: commitment)])
+//        guard let blockhash = result.value.blockhash else {
+//            throw APIClientError.blockhashNotFound
+//        }
+//        return blockhash
+//    }
 
     public func getSignatureStatuses(signatures: [String],
                                      configs: RequestConfiguration? = nil) async throws -> [SignatureStatus?]
