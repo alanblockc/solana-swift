@@ -1,7 +1,13 @@
 import Foundation
 
+extension Commitment {
+    static let finalized: Commitment = "finalized"
+    static let confirmed: Commitment = "confirmed"
+    static let processed: Commitment = "processed"
+}
+
 /// JSON RPC
-public class JSONRPCAPIClient: SolanaAPIClient {
+public class SolanaAPIClient {
     public typealias ResponseDecoder = JSONRPCResponseDecoder
     public typealias RequestEncoder = JSONRPCRequestEncoder
 

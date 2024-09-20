@@ -7,7 +7,7 @@ public enum BlockchainClientError: Error, Equatable {
 }
 
 /// Default implementation of SolanaBlockchainClient
-public class BlockchainClient: SolanaBlockchainClient {
+public class SolanaBlockchainClient {
     public var apiClient: SolanaAPIClient
 
     public init(apiClient: SolanaAPIClient) {
@@ -24,29 +24,28 @@ public class BlockchainClient: SolanaBlockchainClient {
     public func prepareTransaction(
         instructions: [TransactionInstruction],
         signers: [KeyPair],
-        feePayer: PublicKey,
-        feeCalculator fc: FeeCalculator? = nil
+        feePayer: PublicKey
     ) async throws -> PreparedTransaction {
         // form transaction
         var transaction = Transaction(instructions: instructions, recentBlockhash: nil, feePayer: feePayer)
 
-        let feeCalculator: FeeCalculator
-        if let fc = fc {
-            feeCalculator = fc
-        } else {
-            let (lps, minRentExemption) = try await(
-                apiClient.getFees(commitment: nil).feeCalculator?.lamportsPerSignature,
-                apiClient.getMinimumBalanceForRentExemption(span: 165)
-            )
-            let lamportsPerSignature = lps ?? 5000
-            feeCalculator = DefaultFeeCalculator(
-                lamportsPerSignature: lamportsPerSignature,
-                minRentExemption: minRentExemption
-            )
-        }
-        let expectedFee = try feeCalculator.calculateNetworkFee(transaction: transaction)
+//        let feeCalculator: FeeCalculator
+//        if let fc = fc {
+//            feeCalculator = fc
+//        } else {
+//            let (lps, minRentExemption) = try await(
+//                apiClient.getFees(commitment: nil).feeCalculator?.lamportsPerSignature,
+//                apiClient.getMinimumBalanceForRentExemption(span: 165)
+//            )
+//            let lamportsPerSignature = lps ?? 5000
+//            feeCalculator = DefaultFeeCalculator(
+//                lamportsPerSignature: lamportsPerSignature,
+//                minRentExemption: minRentExemption
+//            )
+//        }
+        let expectedFee = try await apiClient.getFeeForMessage(message: transaction.serializeMessage().base64EncodedString())
 
-        let blockhash = try await apiClient.getRecentBlockhash()
+        let blockhash = try await apiClient.getLatestBlockhash()
         transaction.recentBlockhash = blockhash
 
         // if any signers, sign
@@ -222,11 +221,7 @@ public class BlockchainClient: SolanaBlockchainClient {
         let preparedTransaction = try await prepareTransaction(
             instructions: instructions,
             signers: [account],
-            feePayer: feePayer,
-            feeCalculator: DefaultFeeCalculator(
-                lamportsPerSignature: lamportsPerSignature,
-                minRentExemption: minRentExemption
-            )
+            feePayer: feePayer
         )
         return (preparedTransaction, realDestination)
     }
