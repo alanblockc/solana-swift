@@ -45,12 +45,12 @@ public struct Transaction: Encodable, Equatable {
         try partialSign(message: message, signers: signers)
     }
 
-    public func calculateTransactionFee(lamportsPerSignatures: UInt64) throws -> UInt64 {
-        var transaction = self
-        transaction.recentBlockhash = "BdA9gRatFvvwszr9uU5fznkHoMVQE8tf6ZFi8Mp6xdKs" // fake
-        let message = try transaction.compile()
-        return UInt64(message.header.numRequiredSignatures) * lamportsPerSignatures
-    }
+//    public func calculateTransactionFee(lamportsPerSignatures: UInt64) throws -> UInt64 {
+//        var transaction = self
+//        transaction.recentBlockhash = "BdA9gRatFvvwszr9uU5fznkHoMVQE8tf6ZFi8Mp6xdKs" // fake
+//        let message = try transaction.compile()
+//        return UInt64(message.header.numRequiredSignatures) * lamportsPerSignatures
+//    }
 
     public mutating func serialize(
         requiredAllSignatures: Bool = true,
