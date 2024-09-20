@@ -24,7 +24,7 @@ extension SolanaAPIClient {
     
     func getFeeForMessage(message: String, commitment: Commitment? = nil) async throws -> UInt64? {
         let result: Rpc<UInt64?> = try await get(method: "getFeeForMessage",
-                                                 params: [RequestConfiguration(commitment: commitment)])
+                                                 params: [message, RequestConfiguration(commitment: commitment)])
         
         return result.value
     }

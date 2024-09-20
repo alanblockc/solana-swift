@@ -48,14 +48,12 @@ public class SolanaBlockchainClient {
         let blockhash = try await apiClient.getLatestBlockhash()
         transaction.recentBlockhash = blockhash
 
-        let expectedFee = try await apiClient.getFeeForMessage(message: transaction.serializeMessage().base64EncodedString())
-        
         // if any signers, sign
         if !signers.isEmpty {
             try transaction.sign(signers: signers)
         }
     
-       
+        let expectedFee = try await apiClient.getFeeForMessage(message: transaction.serializeMessage().base64EncodedString())
 
         // return formed transaction
         return .init(transaction: transaction, signers: signers, expectedFee: expectedFee)
