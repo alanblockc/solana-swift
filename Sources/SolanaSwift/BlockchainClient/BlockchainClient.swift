@@ -43,7 +43,7 @@ public class SolanaBlockchainClient {
 //                minRentExemption: minRentExemption
 //            )
 //        }
-        let expectedFee = try await apiClient.getFeeForMessage(message: transaction.serializeMessage().base64EncodedString())
+        
 
         let blockhash = try await apiClient.getLatestBlockhash()
         transaction.recentBlockhash = blockhash
@@ -52,6 +52,8 @@ public class SolanaBlockchainClient {
         if !signers.isEmpty {
             try transaction.sign(signers: signers)
         }
+        
+        let expectedFee = try await apiClient.getFeeForMessage(message: transaction.serializeMessage().base64EncodedString())
 
         // return formed transaction
         return .init(transaction: transaction, signers: signers, expectedFee: expectedFee)
