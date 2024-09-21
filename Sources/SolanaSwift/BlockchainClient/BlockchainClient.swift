@@ -126,9 +126,7 @@ public class SolanaBlockchainClient {
         to destinationAddress: String,
         amount: UInt64,
         feePayer: PublicKey? = nil,
-        transferChecked: Bool = false,
-        lamportsPerSignature: Lamports,
-        minRentExemption: Lamports
+        transferChecked: Bool = false
     ) async throws -> (preparedTransaction: PreparedTransaction, realDestination: String) {
         let feePayer = feePayer ?? account.publicKey
 
@@ -151,7 +149,7 @@ public class SolanaBlockchainClient {
         var instructions = [TransactionInstruction]()
 
         // create associated token address
-        var accountsCreationFee: UInt64 = 0
+        //var accountsCreationFee: UInt64 = 0
         if splDestination.isUnregisteredAsocciatedToken {
             let mint = try PublicKey(string: mintAddress)
             let owner = try PublicKey(string: destinationAddress)
@@ -163,7 +161,7 @@ public class SolanaBlockchainClient {
                 tokenProgramId: tokenProgramId
             )
             instructions.append(createATokenInstruction)
-            accountsCreationFee += minRentExemption
+            //accountsCreationFee += minRentExemption
         }
 
         // send instruction
