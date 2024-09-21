@@ -283,7 +283,7 @@ public class SolanaBlockchainClient {
                 sendInstruction = try TokenProgram.transferCheckedInstruction(
                     source: fromPublicKey,
                     mint: PublicKey(string: mintAddress),
-                    destination: splDestination.destination,
+                    destination: toPublicKey,//splDestination.destination,
                     owner: account.publicKey,
                     multiSigners: [],
                     amount: amount,
@@ -293,7 +293,7 @@ public class SolanaBlockchainClient {
                 sendInstruction = try Token2022Program.transferCheckedInstruction(
                     source: fromPublicKey,
                     mint: PublicKey(string: mintAddress),
-                    destination: splDestination.destination,
+                    destination: toPublicKey,//splDestination.destination,
                     owner: account.publicKey,
                     multiSigners: [],
                     amount: amount,
