@@ -130,6 +130,9 @@ public class SolanaBlockchainClient {
     ) async throws -> (preparedTransaction: PreparedTransaction, realDestination: String) {
         let feePayer = feePayer ?? account.publicKey
         
+        let fromTokenAccountAddr = try await apiClient.findSPLTokenDestinationAddress(mintAddress: mintAddress, destinationAddress: fromWalletAddr, tokenProgramId: tokenProgramId).destination.base58EncodedString
+        let fromTokenPublicKey = try PublicKey(string: fromTokenAccountAddr)
+        
         let splDestination = try await apiClient.findSPLTokenDestinationAddress(
             mintAddress: mintAddress,
             destinationAddress: toWalletAddr,
@@ -137,14 +140,12 @@ public class SolanaBlockchainClient {
         )
         
         // get address
-        let toPublicKey = splDestination.destination
+        let toTokenPublicKey = splDestination.destination
         
         // catch error
-        if fromWalletAddr == toPublicKey.base58EncodedString {
+        if fromWalletAddr == toTokenPublicKey.base58EncodedString {
             throw BlockchainClientError.sendTokenToYourSelf
         }
-        
-        let fromPublicKey = try PublicKey(string: fromWalletAddr)
         
         var instructions = [TransactionInstruction]()
         
@@ -172,7 +173,7 @@ public class SolanaBlockchainClient {
             // transfer checked transaction
             if tokenProgramId == TokenProgram.id {
                 sendInstruction = try TokenProgram.transferCheckedInstruction(
-                    source: fromPublicKey,
+                    source: fromTokenPublicKey,
                     mint: PublicKey(string: mintAddress),
                     destination: splDestination.destination,
                     owner: account.publicKey,
@@ -182,7 +183,7 @@ public class SolanaBlockchainClient {
                 )
             } else {
                 sendInstruction = try Token2022Program.transferCheckedInstruction(
-                    source: fromPublicKey,
+                    source: fromTokenPublicKey,
                     mint: PublicKey(string: mintAddress),
                     destination: splDestination.destination,
                     owner: account.publicKey,
@@ -195,15 +196,15 @@ public class SolanaBlockchainClient {
             // transfer transaction
             if tokenProgramId == TokenProgram.id {
                 sendInstruction = TokenProgram.transferInstruction(
-                    source: fromPublicKey,
-                    destination: toPublicKey,
+                    source: fromTokenPublicKey,
+                    destination: toTokenPublicKey,
                     owner: account.publicKey,
                     amount: amount
                 )
             } else {
                 sendInstruction = Token2022Program.transferInstruction(
-                    source: fromPublicKey,
-                    destination: toPublicKey,
+                    source: fromTokenPublicKey,
+                    destination: toTokenPublicKey,
                     owner: account.publicKey,
                     amount: amount
                 )
@@ -226,116 +227,116 @@ public class SolanaBlockchainClient {
         return (preparedTransaction, realDestination)
     }
     
-    public func tmpprepareSendingSPLTokens(
-        account: KeyPair,
-        mintAddress: String,
-        tokenProgramId: PublicKey,
-        decimals: Decimals,
-        from fromWalletAddr: String,
-        to toWalletAddr: String,
-        amount: UInt64,
-        feePayer: PublicKey? = nil,
-        transferChecked: Bool = false
-    ) async throws -> (preparedTransaction: PreparedTransaction, realDestination: String) {
-        let feePayer = feePayer ?? account.publicKey
-        
-        let fromAccountAddr = try await apiClient.findSPLTokenDestinationAddress(mintAddress: mintAddress, destinationAddress: fromWalletAddr, tokenProgramId: tokenProgramId).destination.base58EncodedString
-        
-        let splDestination = try await apiClient.findSPLTokenDestinationAddress(
-            mintAddress: mintAddress,
-            destinationAddress: toWalletAddr,
-            tokenProgramId: tokenProgramId
-        )
-        
-        // get address
-        let toPublicKey = splDestination.destination
-        
-        
-        
-        // catch error
-        if fromAccountAddr == toPublicKey.base58EncodedString {
-            throw BlockchainClientError.sendTokenToYourSelf
-        }
-        
-        let fromPublicKey = try PublicKey(string: fromAccountAddr)
-        var instructions = [TransactionInstruction]()
-        
-        // create associated token address
-        //var accountsCreationFee: UInt64 = 0
-        if splDestination.isUnregisteredAsocciatedToken {
-            let mint = try PublicKey(string: mintAddress)
-            let owner = try PublicKey(string: toWalletAddr)
-            
-            let createATokenInstruction = try AssociatedTokenProgram.createAssociatedTokenAccountInstruction(
-                mint: mint,
-                owner: owner,
-                payer: feePayer,
-                tokenProgramId: tokenProgramId
-            )
-            instructions.append(createATokenInstruction)
-            //accountsCreationFee += minRentExemption
-        }
-        
-        // send instruction
-        let sendInstruction: TransactionInstruction
-        
-        // use transfer checked transaction for proxy, otherwise use normal transfer transaction
-        if transferChecked {
-            // transfer checked transaction
-            if tokenProgramId == TokenProgram.id {
-                sendInstruction = try TokenProgram.transferCheckedInstruction(
-                    source: fromPublicKey,
-                    mint: PublicKey(string: mintAddress),
-                    destination: splDestination.destination,
-                    owner: account.publicKey,
-                    multiSigners: [],
-                    amount: amount,
-                    decimals: decimals
-                )
-            } else {
-                sendInstruction = try Token2022Program.transferCheckedInstruction(
-                    source: fromPublicKey,
-                    mint: PublicKey(string: mintAddress),
-                    destination: splDestination.destination,
-                    owner: account.publicKey,
-                    multiSigners: [],
-                    amount: amount,
-                    decimals: decimals
-                )
-            }
-        } else {
-            // transfer transaction
-            if tokenProgramId == TokenProgram.id {
-                sendInstruction = TokenProgram.transferInstruction(
-                    source: fromPublicKey,
-                    destination: toPublicKey,
-                    owner: account.publicKey,
-                    amount: amount
-                )
-            } else {
-                sendInstruction = Token2022Program.transferInstruction(
-                    source: fromPublicKey,
-                    destination: toPublicKey,
-                    owner: account.publicKey,
-                    amount: amount
-                )
-            }
-        }
-        
-        instructions.append(sendInstruction)
-        
-        var realDestination = toWalletAddr
-        if !splDestination.isUnregisteredAsocciatedToken {
-            realDestination = splDestination.destination.base58EncodedString
-        }
-        
-        // if not, serialize and send instructions normally
-        let preparedTransaction = try await prepareTransaction(
-            instructions: instructions,
-            signers: [account],
-            feePayer: feePayer
-        )
-        return (preparedTransaction, realDestination)
-        
-    }
+//    public func tmpprepareSendingSPLTokens(
+//        account: KeyPair,
+//        mintAddress: String,
+//        tokenProgramId: PublicKey,
+//        decimals: Decimals,
+//        from fromWalletAddr: String,
+//        to toWalletAddr: String,
+//        amount: UInt64,
+//        feePayer: PublicKey? = nil,
+//        transferChecked: Bool = false
+//    ) async throws -> (preparedTransaction: PreparedTransaction, realDestination: String) {
+//        let feePayer = feePayer ?? account.publicKey
+//        
+//        let fromTokenAccountAddr = try await apiClient.findSPLTokenDestinationAddress(mintAddress: mintAddress, destinationAddress: fromWalletAddr, tokenProgramId: tokenProgramId).destination.base58EncodedString
+//        
+//        let splDestination = try await apiClient.findSPLTokenDestinationAddress(
+//            mintAddress: mintAddress,
+//            destinationAddress: toWalletAddr,
+//            tokenProgramId: tokenProgramId
+//        )
+//        
+//        // get address
+//        let toPublicKey = splDestination.destination
+//        
+//        
+//        
+//        // catch error
+//        if fromTokenAccountAddr == toPublicKey.base58EncodedString {
+//            throw BlockchainClientError.sendTokenToYourSelf
+//        }
+//        
+//        let fromPublicKey = try PublicKey(string: fromTokenAccountAddr)
+//        var instructions = [TransactionInstruction]()
+//        
+//        // create associated token address
+//        //var accountsCreationFee: UInt64 = 0
+//        if splDestination.isUnregisteredAsocciatedToken {
+//            let mint = try PublicKey(string: mintAddress)
+//            let owner = try PublicKey(string: toWalletAddr)
+//            
+//            let createATokenInstruction = try AssociatedTokenProgram.createAssociatedTokenAccountInstruction(
+//                mint: mint,
+//                owner: owner,
+//                payer: feePayer,
+//                tokenProgramId: tokenProgramId
+//            )
+//            instructions.append(createATokenInstruction)
+//            //accountsCreationFee += minRentExemption
+//        }
+//        
+//        // send instruction
+//        let sendInstruction: TransactionInstruction
+//        
+//        // use transfer checked transaction for proxy, otherwise use normal transfer transaction
+//        if transferChecked {
+//            // transfer checked transaction
+//            if tokenProgramId == TokenProgram.id {
+//                sendInstruction = try TokenProgram.transferCheckedInstruction(
+//                    source: fromPublicKey,
+//                    mint: PublicKey(string: mintAddress),
+//                    destination: splDestination.destination,
+//                    owner: account.publicKey,
+//                    multiSigners: [],
+//                    amount: amount,
+//                    decimals: decimals
+//                )
+//            } else {
+//                sendInstruction = try Token2022Program.transferCheckedInstruction(
+//                    source: fromPublicKey,
+//                    mint: PublicKey(string: mintAddress),
+//                    destination: splDestination.destination,
+//                    owner: account.publicKey,
+//                    multiSigners: [],
+//                    amount: amount,
+//                    decimals: decimals
+//                )
+//            }
+//        } else {
+//            // transfer transaction
+//            if tokenProgramId == TokenProgram.id {
+//                sendInstruction = TokenProgram.transferInstruction(
+//                    source: fromPublicKey,
+//                    destination: toPublicKey,
+//                    owner: account.publicKey,
+//                    amount: amount
+//                )
+//            } else {
+//                sendInstruction = Token2022Program.transferInstruction(
+//                    source: fromPublicKey,
+//                    destination: toPublicKey,
+//                    owner: account.publicKey,
+//                    amount: amount
+//                )
+//            }
+//        }
+//        
+//        instructions.append(sendInstruction)
+//        
+//        var realDestination = toWalletAddr
+//        if !splDestination.isUnregisteredAsocciatedToken {
+//            realDestination = splDestination.destination.base58EncodedString
+//        }
+//        
+//        // if not, serialize and send instructions normally
+//        let preparedTransaction = try await prepareTransaction(
+//            instructions: instructions,
+//            signers: [account],
+//            feePayer: feePayer
+//        )
+//        return (preparedTransaction, realDestination)
+//        
+//    }
 }
