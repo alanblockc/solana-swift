@@ -68,19 +68,21 @@ public class SolanaBlockchainClient {
     ///    - recentBlockhash optional
     /// - Returns: PreparedTransaction, can be sent or simulated using SolanaBlockchainClient
     public func prepareSendingNativeSOL(
-        from account: KeyPair,
-        to destination: String,
+        account: KeyPair?,
+        from fromWalletAddr: String,
+        to toWalletAddr: String,
         amount: UInt64,
         feePayer: PublicKey? = nil
     ) async throws -> PreparedTransaction {
-        let feePayer = feePayer ?? account.publicKey
-        let fromPublicKey = account.publicKey
-        if fromPublicKey.base58EncodedString == destination {
+        let fromPublicKey = try PublicKey(string: toWalletAddr)
+        let feePayer = feePayer ?? fromPublicKey
+        
+        if fromPublicKey.base58EncodedString == toWalletAddr {
             throw BlockchainClientError.sendTokenToYourSelf
         }
         var accountInfo: BufferInfo<EmptyInfo>?
         do {
-            accountInfo = try await apiClient.getAccountInfo(account: destination)
+            accountInfo = try await apiClient.getAccountInfo(account: toWalletAddr)
             guard accountInfo == nil || accountInfo?.owner == SystemProgram.id.base58EncodedString
             else { throw BlockchainClientError.invalidAccountInfo }
         } catch let error as APIClientError where error == .couldNotRetrieveAccountInfo {
@@ -93,12 +95,12 @@ public class SolanaBlockchainClient {
         // form instruction
         let instruction = try SystemProgram.transferInstruction(
             from: fromPublicKey,
-            to: PublicKey(string: destination),
+            to: PublicKey(string: toWalletAddr),
             lamports: amount
         )
         return try await prepareTransaction(
             instructions: [instruction],
-            signers: [account],
+            signers: (account != nil) ? [account!]: [],
             feePayer: feePayer
         )
     }
