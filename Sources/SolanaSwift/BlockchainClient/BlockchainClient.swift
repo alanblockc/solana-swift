@@ -74,7 +74,7 @@ public class SolanaBlockchainClient {
         amount: UInt64,
         feePayer: PublicKey? = nil
     ) async throws -> PreparedTransaction {
-        let fromPublicKey = try PublicKey(string: toWalletAddr)
+        let fromPublicKey = try PublicKey(string: fromWalletAddr)
         let feePayer = feePayer ?? fromPublicKey
         
         if fromPublicKey.base58EncodedString == toWalletAddr {
