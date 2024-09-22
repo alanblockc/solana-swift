@@ -9,11 +9,11 @@ public enum BlockchainClientError: Error, Equatable {
 /// Default implementation of SolanaBlockchainClient
 public class SolanaBlockchainClient {
     public var apiClient: SolanaAPIClient
-
+    
     public init(apiClient: SolanaAPIClient) {
         self.apiClient = apiClient
     }
-
+    
     /// Prepare a transaction to be sent using SolanaBlockchainClient
     /// - Parameters:
     ///   - instructions: the instructions of the transaction
@@ -28,37 +28,37 @@ public class SolanaBlockchainClient {
     ) async throws -> PreparedTransaction {
         // form transaction
         var transaction = Transaction(instructions: instructions, recentBlockhash: nil, feePayer: feePayer)
-
-//        let feeCalculator: FeeCalculator
-//        if let fc = fc {
-//            feeCalculator = fc
-//        } else {
-//            let (lps, minRentExemption) = try await(
-//                apiClient.getFees(commitment: nil).feeCalculator?.lamportsPerSignature,
-//                apiClient.getMinimumBalanceForRentExemption(span: 165)
-//            )
-//            let lamportsPerSignature = lps ?? 5000
-//            feeCalculator = DefaultFeeCalculator(
-//                lamportsPerSignature: lamportsPerSignature,
-//                minRentExemption: minRentExemption
-//            )
-//        }
         
-
+        //        let feeCalculator: FeeCalculator
+        //        if let fc = fc {
+        //            feeCalculator = fc
+        //        } else {
+        //            let (lps, minRentExemption) = try await(
+        //                apiClient.getFees(commitment: nil).feeCalculator?.lamportsPerSignature,
+        //                apiClient.getMinimumBalanceForRentExemption(span: 165)
+        //            )
+        //            let lamportsPerSignature = lps ?? 5000
+        //            feeCalculator = DefaultFeeCalculator(
+        //                lamportsPerSignature: lamportsPerSignature,
+        //                minRentExemption: minRentExemption
+        //            )
+        //        }
+        
+        
         let blockhash = try await apiClient.getLatestBlockhash()
         transaction.recentBlockhash = blockhash
-
+        
         // if any signers, sign
         if !signers.isEmpty {
             try transaction.sign(signers: signers)
         }
-    
+        
         let expectedFee = try await apiClient.getFeeForMessage(message: transaction.serializeMessage().base64EncodedString())
-
+        
         // return formed transaction
         return .init(transaction: transaction, signers: signers, expectedFee: expectedFee)
     }
-
+    
     /// Create prepared transaction for sending SOL
     /// - Parameters:
     ///   - account
@@ -89,7 +89,7 @@ public class SolanaBlockchainClient {
         } catch {
             throw error
         }
-
+        
         // form instruction
         let instruction = try SystemProgram.transferInstruction(
             from: fromPublicKey,
@@ -102,7 +102,7 @@ public class SolanaBlockchainClient {
             feePayer: feePayer
         )
     }
-
+    
     /// Prepare for sending any SPLToken
     /// - Parameters:
     ///   - account: user's account to send from
@@ -122,38 +122,38 @@ public class SolanaBlockchainClient {
         mintAddress: String,
         tokenProgramId: PublicKey,
         decimals: Decimals,
-        from fromPublicKey: String,
-        to destinationAddress: String,
+        from fromWalletAddr: String,
+        to toWalletAddr: String,
         amount: UInt64,
         feePayer: PublicKey? = nil,
         transferChecked: Bool = false
     ) async throws -> (preparedTransaction: PreparedTransaction, realDestination: String) {
         let feePayer = feePayer ?? account.publicKey
-
+        
         let splDestination = try await apiClient.findSPLTokenDestinationAddress(
             mintAddress: mintAddress,
-            destinationAddress: destinationAddress,
+            destinationAddress: toWalletAddr,
             tokenProgramId: tokenProgramId
         )
-
+        
         // get address
         let toPublicKey = splDestination.destination
-
+        
         // catch error
-        if fromPublicKey == toPublicKey.base58EncodedString {
+        if fromWalletAddr == toPublicKey.base58EncodedString {
             throw BlockchainClientError.sendTokenToYourSelf
         }
-
-        let fromPublicKey = try PublicKey(string: fromPublicKey)
-
+        
+        let fromPublicKey = try PublicKey(string: fromWalletAddr)
+        
         var instructions = [TransactionInstruction]()
-
+        
         // create associated token address
         //var accountsCreationFee: UInt64 = 0
         if splDestination.isUnregisteredAsocciatedToken {
             let mint = try PublicKey(string: mintAddress)
-            let owner = try PublicKey(string: destinationAddress)
-
+            let owner = try PublicKey(string: toWalletAddr)
+            
             let createATokenInstruction = try AssociatedTokenProgram.createAssociatedTokenAccountInstruction(
                 mint: mint,
                 owner: owner,
@@ -163,10 +163,10 @@ public class SolanaBlockchainClient {
             instructions.append(createATokenInstruction)
             //accountsCreationFee += minRentExemption
         }
-
+        
         // send instruction
         let sendInstruction: TransactionInstruction
-
+        
         // use transfer checked transaction for proxy, otherwise use normal transfer transaction
         if transferChecked {
             // transfer checked transaction
@@ -209,14 +209,14 @@ public class SolanaBlockchainClient {
                 )
             }
         }
-
+        
         instructions.append(sendInstruction)
-
-        var realDestination = destinationAddress
+        
+        var realDestination = toWalletAddr
         if !splDestination.isUnregisteredAsocciatedToken {
             realDestination = splDestination.destination.base58EncodedString
         }
-
+        
         // if not, serialize and send instructions normally
         let preparedTransaction = try await prepareTransaction(
             instructions: instructions,
@@ -231,38 +231,41 @@ public class SolanaBlockchainClient {
         mintAddress: String,
         tokenProgramId: PublicKey,
         decimals: Decimals,
-        from fromPublicKey: String,
-        to destinationAddress: String,
+        from fromWalletAddr: String,
+        to toWalletAddr: String,
         amount: UInt64,
         feePayer: PublicKey? = nil,
         transferChecked: Bool = false
     ) async throws -> (preparedTransaction: PreparedTransaction, realDestination: String) {
         let feePayer = feePayer ?? account.publicKey
-
+        
+        let fromAccountAddr = try await apiClient.findSPLTokenDestinationAddress(mintAddress: mintAddress, destinationAddress: fromWalletAddr, tokenProgramId: tokenProgramId).destination.base58EncodedString
+        
         let splDestination = try await apiClient.findSPLTokenDestinationAddress(
             mintAddress: mintAddress,
-            destinationAddress: destinationAddress,
+            destinationAddress: toWalletAddr,
             tokenProgramId: tokenProgramId
         )
-
+        
         // get address
-        let toPublicKey =  try PublicKey(string: destinationAddress) //splDestination.destination
-
+        let toPublicKey = splDestination.destination
+        
+        
+        
         // catch error
-        if fromPublicKey == toPublicKey.base58EncodedString {
+        if fromAccountAddr == toPublicKey.base58EncodedString {
             throw BlockchainClientError.sendTokenToYourSelf
         }
-
-        let fromPublicKey = try PublicKey(string: fromPublicKey)
-
+        
+        let fromPublicKey = try PublicKey(string: fromAccountAddr)
         var instructions = [TransactionInstruction]()
-
+        
         // create associated token address
         //var accountsCreationFee: UInt64 = 0
         if splDestination.isUnregisteredAsocciatedToken {
             let mint = try PublicKey(string: mintAddress)
-            let owner = try PublicKey(string: destinationAddress)
-
+            let owner = try PublicKey(string: toWalletAddr)
+            
             let createATokenInstruction = try AssociatedTokenProgram.createAssociatedTokenAccountInstruction(
                 mint: mint,
                 owner: owner,
@@ -272,10 +275,10 @@ public class SolanaBlockchainClient {
             instructions.append(createATokenInstruction)
             //accountsCreationFee += minRentExemption
         }
-
+        
         // send instruction
         let sendInstruction: TransactionInstruction
-
+        
         // use transfer checked transaction for proxy, otherwise use normal transfer transaction
         if transferChecked {
             // transfer checked transaction
@@ -283,7 +286,7 @@ public class SolanaBlockchainClient {
                 sendInstruction = try TokenProgram.transferCheckedInstruction(
                     source: fromPublicKey,
                     mint: PublicKey(string: mintAddress),
-                    destination: toPublicKey,//splDestination.destination,
+                    destination: splDestination.destination,
                     owner: account.publicKey,
                     multiSigners: [],
                     amount: amount,
@@ -293,7 +296,7 @@ public class SolanaBlockchainClient {
                 sendInstruction = try Token2022Program.transferCheckedInstruction(
                     source: fromPublicKey,
                     mint: PublicKey(string: mintAddress),
-                    destination: toPublicKey,//splDestination.destination,
+                    destination: splDestination.destination,
                     owner: account.publicKey,
                     multiSigners: [],
                     amount: amount,
@@ -318,14 +321,14 @@ public class SolanaBlockchainClient {
                 )
             }
         }
-
+        
         instructions.append(sendInstruction)
-
-        var realDestination = destinationAddress
+        
+        var realDestination = toWalletAddr
         if !splDestination.isUnregisteredAsocciatedToken {
             realDestination = splDestination.destination.base58EncodedString
         }
-
+        
         // if not, serialize and send instructions normally
         let preparedTransaction = try await prepareTransaction(
             instructions: instructions,
@@ -333,5 +336,6 @@ public class SolanaBlockchainClient {
             feePayer: feePayer
         )
         return (preparedTransaction, realDestination)
+        
     }
 }
