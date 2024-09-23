@@ -120,7 +120,7 @@ public class SolanaBlockchainClient {
     /// or simulated using SolanaBlockchainClient, the realDestination is the real spl address of destination. Can be
     /// different from destinationAddress if destinationAddress is a native Solana address
     public func prepareSendingSPLTokens(
-        account: KeyPair,
+        account: KeyPair?,
         mintAddress: String,
         tokenProgramId: PublicKey,
         decimals: Decimals,
@@ -130,7 +130,8 @@ public class SolanaBlockchainClient {
         feePayer: PublicKey? = nil,
         transferChecked: Bool = false
     ) async throws -> (preparedTransaction: PreparedTransaction, realDestination: String) {
-        let feePayer = feePayer ?? account.publicKey
+        let fromPublicKey = try PublicKey(string: fromWalletAddr)
+        let feePayer = feePayer ?? fromPublicKey
     
         // get from tokenAccount
         let fromTokenAccountAddr = try await apiClient.findSPLTokenDestinationAddress(mintAddress: mintAddress, destinationAddress: fromWalletAddr, tokenProgramId: tokenProgramId).destination.base58EncodedString
@@ -175,7 +176,7 @@ public class SolanaBlockchainClient {
                     source: fromTokenPublicKey,
                     mint: PublicKey(string: mintAddress),
                     destination: toTokenPublicKey,
-                    owner: account.publicKey,
+                    owner: fromPublicKey,
                     multiSigners: [],
                     amount: amount,
                     decimals: decimals
@@ -185,7 +186,7 @@ public class SolanaBlockchainClient {
                     source: fromTokenPublicKey,
                     mint: PublicKey(string: mintAddress),
                     destination: toTokenPublicKey,
-                    owner: account.publicKey,
+                    owner: fromPublicKey,
                     multiSigners: [],
                     amount: amount,
                     decimals: decimals
@@ -197,14 +198,14 @@ public class SolanaBlockchainClient {
                 sendInstruction = TokenProgram.transferInstruction(
                     source: fromTokenPublicKey,
                     destination: toTokenPublicKey,
-                    owner: account.publicKey,
+                    owner: fromPublicKey,
                     amount: amount
                 )
             } else {
                 sendInstruction = Token2022Program.transferInstruction(
                     source: fromTokenPublicKey,
                     destination: toTokenPublicKey,
-                    owner: account.publicKey,
+                    owner: fromPublicKey,
                     amount: amount
                 )
             }
@@ -220,7 +221,7 @@ public class SolanaBlockchainClient {
         // if not, serialize and send instructions normally
         let preparedTransaction = try await prepareTransaction(
             instructions: instructions,
-            signers: [account],
+            signers: (account != nil) ? [account!]: [],
             feePayer: feePayer
         )
         return (preparedTransaction, realDestination)
